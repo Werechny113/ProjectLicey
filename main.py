@@ -100,5 +100,15 @@ async def backet(message: types.Message):
                                reply_markup=buy_keyboard)
 
 
+@dp.callback_query_handler(lambda mes: mes.data[:3] == "buy")
+async def buy(callback: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback.from_user.id,
+                             message_id=callback.message.message_id)
+    await bot.send_message(chat_id=callback.from_user.id,
+                           text="Вы успешно оплатили")
+    cursor.execute("UPDATE users SET buy = ? WHERE tg = ?", ("", callback.from_user.id))
+    connection.commit()
+
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
