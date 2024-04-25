@@ -149,5 +149,26 @@ async def address(message: types.Message):
                            text="Название - Сели-поели")
 
 
+@dp.message_handler(text=['Информация'])
+async def general(message: types.Message):
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Директор - Вася Пупкин, гений, миллиардер, плейбой, филантроп\n"
+                                "Контактный номер - 88005553535\n"
+                                "Работаем с 10 до 10")
+
+
+@dp.message_handler(text=['Главное меню'])
+async def back(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    about = types.KeyboardButton("О нас")
+    menu = types.KeyboardButton("Меню")
+    backet = types.KeyboardButton("Корзина")
+    keyboard.add(about, menu, backet)
+
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Вы вернулись в главное меню",
+                           reply_markup=keyboard)
+
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
