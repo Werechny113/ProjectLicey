@@ -56,3 +56,7 @@ async def contact(message: types.Message):
     cursor.execute("UPDATE users SET phone = ? WHERE tg = ?",
                    (message.contact.phone_number, message.from_user.id))
     connection.commit()
+
+
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
