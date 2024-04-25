@@ -109,6 +109,7 @@ async def buy(callback: types.CallbackQuery):
     cursor.execute("UPDATE users SET buy = ? WHERE tg = ?", ("", callback.from_user.id))
     connection.commit()
 
+
 @dp.message_handler(commands=['help'])
 async def help(message: types.Message):
     await bot.send_message(chat_id=message.from_user.id,
@@ -127,6 +128,25 @@ async def about(message: types.Message):
     await bot.send_message(chat_id=message.from_user.id,
                            text="Выберите раздел",
                            reply_markup=keyboard)
+
+
+@dp.message_handler(text=['Повара'])
+async def cooks(message: types.Message):
+    cooks = cursor.execute("SELECT * FROM cooks").fetchall()
+    text = "Наши повара:\n"
+    for cook in cooks:
+        text += f"{cook[0]}: {cook[1]} - {cook[2]}, {cook[3]} лет\n"
+    await bot.send_message(chat_id=message.from_user.id,
+                           text=text)
+
+
+@dp.message_handler(text=['Адрес'])
+async def address(message: types.Message):
+    await bot.send_location(chat_id=message.from_user.id,
+                            latitude=51.635685,
+                            longitude=39.248621)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Название - Сели-поели")
 
 
 if __name__ == "__main__":
