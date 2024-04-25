@@ -12,7 +12,7 @@ cursor = connection.cursor()
 logging.basicConfig(level=logging.INFO)
 storage = MemoryStorage()
 
-bot = Bot(token="6658495650:AAG4a33uPqI7MisncshXGu6BNfAFUiNbL7E")
+bot = Bot(token="7140052703:AAF1-6I8OiiQg5CDI6yHe-RCxLlTHsHaOcM")
 dp = Dispatcher(bot, storage=storage)
 
 
@@ -108,6 +108,25 @@ async def buy(callback: types.CallbackQuery):
                            text="Вы успешно оплатили")
     cursor.execute("UPDATE users SET buy = ? WHERE tg = ?", ("", callback.from_user.id))
     connection.commit()
+
+@dp.message_handler(commands=['help'])
+async def help(message: types.Message):
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Нажимай на кнопки и узнавай о нас\n"
+                                "Для перезагрузки - /start")
+
+
+@dp.message_handler(text=['О нас'])
+async def about(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    cooks = types.KeyboardButton("Повара")
+    address = types.KeyboardButton("Адрес")
+    general = types.KeyboardButton("Информация")
+    back = types.KeyboardButton("Главное меню")
+    keyboard.add(back, address, cooks, general)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Выберите раздел",
+                           reply_markup=keyboard)
 
 
 if __name__ == "__main__":
