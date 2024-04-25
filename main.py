@@ -110,5 +110,115 @@ async def buy(callback: types.CallbackQuery):
     connection.commit()
 
 
+@dp.message_handler(commands=['help'])
+async def help(message: types.Message):
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Нажимай на кнопки и узнавай о нас\n"
+                                "Для перезагрузки - /start")
+
+
+@dp.message_handler(text=['О нас'])
+async def about(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    cooks = types.KeyboardButton("Повара")
+    address = types.KeyboardButton("Адрес")
+    general = types.KeyboardButton("Информация")
+    back = types.KeyboardButton("Главное меню")
+    keyboard.add(back, address, cooks, general)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Выберите раздел",
+                           reply_markup=keyboard)
+
+
+@dp.message_handler(text=['Повара'])
+async def cooks(message: types.Message):
+    cooks = cursor.execute("SELECT * FROM cooks").fetchall()
+    text = "Наши повара:\n"
+    for cook in cooks:
+        text += f"{cook[0]}: {cook[1]} - {cook[2]}, {cook[3]} лет\n"
+    await bot.send_message(chat_id=message.from_user.id,
+                           text=text)
+
+
+@dp.message_handler(text=['Адрес'])
+async def address(message: types.Message):
+    await bot.send_location(chat_id=message.from_user.id,
+                            latitude=51.635685,
+                            longitude=39.248621)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Название - Сели-поели")
+
+
+@dp.message_handler(text=['Информация'])
+async def general(message: types.Message):
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Директор - Вася Пупкин, гений, миллиардер, плейбой, филантроп\n"
+                                "Контактный номер - 88005553535\n"
+                                "Работаем с 10 до 10")
+
+
+@dp.message_handler(text=['Главное меню'])
+async def back(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    about = types.KeyboardButton("О нас")
+    menu = types.KeyboardButton("Меню")
+    backet = types.KeyboardButton("Корзина")
+    keyboard.add(about, menu, backet)
+
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Вы вернулись в главное меню",
+                           reply_markup=keyboard)
+
+
+@dp.message_handler(text=['Меню'])
+async def menu(message: types.Message):
+    delete = types.ReplyKeyboardRemove()
+    food = cursor.execute("SELECT * FROM menu").fetchall()
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    for row in food:
+        button = types.InlineKeyboardButton(text=row[1], callback_data=f"food{row[1]}")
+        keyboard.add(button)
+    back = types.InlineKeyboardButton("Назад", callback_data="back")
+    keyboard.add(back)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Выберите блюдо",
+                           reply_markup=delete)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Блюда:",
+                           reply_markup=keyboard)
+
+
+@dp.callback_query_handler(lambda mes: mes.data == "back")
+async def back(callback: types.CallbackQuery):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    about = types.KeyboardButton("О нас")
+    menu = types.KeyboardButton("Меню")
+    backet = types.KeyboardButton("Корзина")
+    keyboard.add(about, menu, backet)
+    await bot.delete_message(chat_id=callback.from_user.id,
+                             message_id=callback.message.message_id)
+    await bot.send_message(chat_id=callback.from_user.id,
+                           text="Вы вернулись в главное меню",
+                           reply_markup=keyboard)
+
+
+@dp.callback_query_handler(lambda mes: mes.data[:4] == "food")
+async def food(callback: types.CallbackQuery):
+    food_name = callback.data[4:]
+    food = cursor.execute("SELECT * FROM menu WHERE name == ?", (food_name,)).fetchall()[0]
+    photo = types.InputFile(f"{food[-1]}")
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    button = types.InlineKeyboardButton(text="Добавить в корзину", callback_data=f"add{food_name}")
+    keyboard.add(button)
+
+    await bot.send_photo(chat_id=callback.from_user.id,
+                         photo=photo,
+                         caption=f"Название - {food[1]}\n"
+                                 f"Время готовки - {food[2]}\n"
+                                 f"Цена - {food[3]}\n"
+                                 f"Вес - {food[4]}",
+                         reply_markup=keyboard)
+
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
