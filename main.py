@@ -1,7 +1,9 @@
 import sqlite3
 import logging
+from ast import literal_eval
 
-from aiogram import Bot, Dispatcher, types
+import aiogram.types as types
+from aiogram import Bot, Dispatcher, executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 connection = sqlite3.connect("cafe.db")
@@ -56,3 +58,47 @@ async def contact(message: types.Message):
     cursor.execute("UPDATE users SET phone = ? WHERE tg = ?",
                    (message.contact.phone_number, message.from_user.id))
     connection.commit()
+
+
+@dp.message_handler(text=['Корзина'])
+async def backet(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    back = types.KeyboardButton("Главное меню")
+    keyboard.add(back)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Вы перешли в корзину",
+                           reply_markup=keyboard)
+
+    phone = cursor.execute("SELECT phone FROM users WHERE tg = ?", (message.from_user.id,)).fetchall()[0]
+    backet = cursor.execute("SELECT buy FROM users WHERE tg = ?", (message.from_user.id,)).fetchall()
+    if not bool(len(backet[0][0])):
+        await bot.send_message(chat_id=message.from_user.id,
+                               text=f"Ваш номер телефона - {phone[0]}\n"
+                                    f"Ваш id - {message.from_user.id}\n\n"
+                                    f"Ваша корзина пуста")
+    else:
+        buy_keyboard = types.InlineKeyboardMarkup(row_width=1)
+        buy = types.InlineKeyboardButton("Оплатить", callback_data="buy")
+        buy_keyboard.add(buy)
+
+        text = "Ваша корзина покупок:\n"
+        summ = 0
+        time = []
+        for row in backet[0][0].split("; "):
+            row = literal_eval(row)
+            food_name = row[0]
+            much = int(row[1])
+            food_info = cursor.execute("SELECT * FROM menu WHERE name = ?", (food_name,)).fetchall()[0][2:]
+            text += f"{food_name}: x{much} - {int(food_info[1]) * much}руб\n"
+            summ += int(food_info[1]) * much
+            time.append(food_info[0])
+        text += f"--------------------\n\n"
+        text += f"Сумма заказа: {summ}руб\n"
+        text += f"Ориентировочное время приготовления: {max(time)} минут"
+        await bot.send_message(chat_id=message.from_user.id,
+                               text=text,
+                               reply_markup=buy_keyboard)
+
+
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
