@@ -170,5 +170,55 @@ async def back(message: types.Message):
                            reply_markup=keyboard)
 
 
+@dp.message_handler(text=['Меню'])
+async def menu(message: types.Message):
+    delete = types.ReplyKeyboardRemove()
+    food = cursor.execute("SELECT * FROM menu").fetchall()
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    for row in food:
+        button = types.InlineKeyboardButton(text=row[1], callback_data=f"food{row[1]}")
+        keyboard.add(button)
+    back = types.InlineKeyboardButton("Назад", callback_data="back")
+    keyboard.add(back)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Выберите блюдо",
+                           reply_markup=delete)
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Блюда:",
+                           reply_markup=keyboard)
+
+
+@dp.callback_query_handler(lambda mes: mes.data == "back")
+async def back(callback: types.CallbackQuery):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    about = types.KeyboardButton("О нас")
+    menu = types.KeyboardButton("Меню")
+    backet = types.KeyboardButton("Корзина")
+    keyboard.add(about, menu, backet)
+    await bot.delete_message(chat_id=callback.from_user.id,
+                             message_id=callback.message.message_id)
+    await bot.send_message(chat_id=callback.from_user.id,
+                           text="Вы вернулись в главное меню",
+                           reply_markup=keyboard)
+
+
+@dp.callback_query_handler(lambda mes: mes.data[:4] == "food")
+async def food(callback: types.CallbackQuery):
+    food_name = callback.data[4:]
+    food = cursor.execute("SELECT * FROM menu WHERE name == ?", (food_name,)).fetchall()[0]
+    photo = types.InputFile(f"{food[-1]}")
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    button = types.InlineKeyboardButton(text="Добавить в корзину", callback_data=f"add{food_name}")
+    keyboard.add(button)
+
+    await bot.send_photo(chat_id=callback.from_user.id,
+                         photo=photo,
+                         caption=f"Название - {food[1]}\n"
+                                 f"Время готовки - {food[2]}\n"
+                                 f"Цена - {food[3]}\n"
+                                 f"Вес - {food[4]}",
+                         reply_markup=keyboard)
+
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
