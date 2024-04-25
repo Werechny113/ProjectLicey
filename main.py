@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 connection = sqlite3.connect("cafe.db")
@@ -40,3 +40,19 @@ async def hello(message: types.Message):
         await bot.send_message(chat_id=message.from_user.id,
                                text="Вы меня перезагрузили",
                                reply_markup=keyboard)
+
+
+@dp.message_handler(content_types=types.ContentTypes.CONTACT)
+async def contact(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    about = types.KeyboardButton("О нас")
+    menu = types.KeyboardButton("Меню")
+    backet = types.KeyboardButton("Корзина")
+    keyboard.add(about, menu, backet)
+
+    await bot.send_message(chat_id=message.from_user.id,
+                           text="Мы добавили ваш номер! На него будут производить заказ",
+                           reply_markup=keyboard)
+    cursor.execute("UPDATE users SET phone = ? WHERE tg = ?",
+                   (message.contact.phone_number, message.from_user.id))
+    connection.commit()
