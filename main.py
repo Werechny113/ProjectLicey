@@ -220,5 +220,81 @@ async def food(callback: types.CallbackQuery):
                          reply_markup=keyboard)
 
 
+@dp.callback_query_handler(lambda mes: mes.data[:3] == "add")
+async def add(callback: types.CallbackQuery):
+    buyed = cursor.execute("SELECT buy FROM users WHERE tg = ?", (callback.from_user.id,)).fetchall()
+    food = callback.data[3:]
+
+    if not bool(len(buyed[0][0])):
+        buyed[0] = [food, "1"]
+        cursor.execute("UPDATE users SET buy = ? WHERE tg = ?", (str(buyed[0]), callback.from_user.id))
+        connection.commit()
+
+        buyed = cursor.execute("SELECT buy FROM users WHERE tg = ?", (callback.from_user.id,)).fetchall()
+
+    else:
+        names = set()
+        for row in buyed[0][0].split("; "):
+            row = literal_eval(row)
+            names.add(row[0])
+        if food in names:
+            new = []
+            for row in buyed[0][0].split("; "):
+                row = literal_eval(row)
+                num = int(row[1])
+                if row[0] == food:
+                    row[1] = f"{num + 1}"
+                new.append(row)
+            cursor.execute("UPDATE users SET buy = ? WHERE tg = ?", ("", callback.from_user.id,))
+            connection.commit()
+
+            for row in new:
+                if new.index(row) == 0:
+                    cursor.execute(f"UPDATE users SET buy = ? WHERE tg = ?", (str(row), callback.from_user.id,))
+                else:
+                    cursor.execute(f"UPDATE users SET buy = buy || ? WHERE tg = ?",
+                                   ("; " + str(row), callback.from_user.id,))
+                connection.commit()
+
+        else:
+            cook = [food, "1"]
+            cursor.execute(f"UPDATE users SET buy = buy || ? WHERE tg = ?", ("; " + str(cook), callback.from_user.id,))
+            connection.commit()
+
+    stop = types.InlineKeyboardMarkup(row_width=1)
+    btn = types.InlineKeyboardButton("Отменить", callback_data="stop")
+    stop.add(btn)
+    await bot.send_message(chat_id=callback.from_user.id,
+                           text=f"Успешно добавлено блюдо: {callback.data[3:]}",
+                           reply_markup=stop)
+
+
+@dp.callback_query_handler(lambda mes: mes.data[:4] == "stop")
+async def stop(callback: types.CallbackQuery):
+    buyed = cursor.execute("SELECT buy FROM users WHERE tg = ?", (callback.from_user.id,)).fetchall()[0]
+
+    if len(buyed[0].split("; ")) > 1:
+        buy_all = []
+        for row in buyed[0].split("; "):
+            row = literal_eval(row)
+            buy_all.append(row)
+        buy_all.pop(-1)
+        for row in buy_all:
+            if buy_all.index(row) == 0:
+                cursor.execute(f"UPDATE users SET buy = ? WHERE tg = ?", (str(row), callback.from_user.id,))
+            else:
+                cursor.execute(f"UPDATE users SET buy = buy || ? WHERE tg = ?",
+                               ("; " + str(row), callback.from_user.id,))
+            connection.commit()
+
+    else:
+        cursor.execute(f"UPDATE users SET buy = ? WHERE tg = ?", ("", callback.from_user.id,))
+        connection.commit()
+    await bot.delete_message(chat_id=callback.from_user.id,
+                             message_id=callback.message.message_id)
+    await bot.send_message(chat_id=callback.from_user.id,
+                           text="Отменено")
+
+
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
