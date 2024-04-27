@@ -143,8 +143,8 @@ async def cooks(message: types.Message):
 @dp.message_handler(text=['Адрес'])
 async def address(message: types.Message):
     await bot.send_location(chat_id=message.from_user.id,
-                            latitude=51.635685,
-                            longitude=39.248621)
+                            latitude=52.496361,
+                            longitude=39.953704,
     await bot.send_message(chat_id=message.from_user.id,
                            text="Название - Сели-поели")
 
