@@ -152,7 +152,7 @@ async def address(message: types.Message):
 @dp.message_handler(text=['Информация'])
 async def general(message: types.Message):
     await bot.send_message(chat_id=message.from_user.id,
-                           text="Директор - Вася Пупкин, гений, миллиардер, плейбой, филантроп\n"
+                           text="Директор - Вася Пупкин, гений, миллиардер, филантроп\n"
                                 "Контактный номер - 88005553535\n"
                                 "Работаем с 10 до 10")
 
